@@ -1,4 +1,4 @@
-from sanic.exceptions import NotFound, Unauthorized
+from sanic.exceptions import NotFound, Forbidden
 from sanic.request import Request
 from sanic.response import BaseHTTPResponse
 
@@ -15,7 +15,8 @@ from db.queries.message import (
     create_message,
     update_message,
     delete_message,
-    get_message_by_id, get_messages_by_recipient_id,
+    get_message_by_id,
+    get_messages_by_recipient_id,
 )
 from db.queries.user import get_user_by_login
 from transport.sanic.endpoints import BaseEndpoint
@@ -24,12 +25,13 @@ from transport.sanic.exceptions import SanicUserNotFound, SanicDBException
 
 class MessagesEndpoint(BaseEndpoint):
     async def method_get(
-            self,
-            request: Request,
-            body: dict,
-            session: DBSession,
-            *args,
-            **kwargs,
+        self,
+        request: Request,
+        body: dict,
+        session: DBSession,
+        token: dict,
+        *args,
+        **kwargs,
     ) -> BaseHTTPResponse:
         """
         Get messages for me
@@ -37,10 +39,11 @@ class MessagesEndpoint(BaseEndpoint):
         :param body:
         :param session:
         :param args:
+        :param token:
         :param kwargs:
         :return:
         """
-        my_user_id = int(body["sub"])
+        my_user_id = int(token["sub"])
         db_messages = get_messages_by_recipient_id(session, recipient_id=my_user_id)
 
         messages = ResponseMessageDto(db_messages, many=True).dump()
@@ -48,18 +51,20 @@ class MessagesEndpoint(BaseEndpoint):
         return await self.make_response_json(status=200, body={"messages": messages})
 
     async def method_post(
-            self,
-            request: Request,
-            body: dict,
-            session: DBSession,
-            *args,
-            **kwargs,
+        self,
+        request: Request,
+        body: dict,
+        session: DBSession,
+        token: dict,
+        *args,
+        **kwargs,
     ) -> BaseHTTPResponse:
         """
         Send message to recipient by login
         :param request:
         :param body:
         :param session:
+        :param token:
         :param args:
         :param kwargs:
         :return:
@@ -69,13 +74,15 @@ class MessagesEndpoint(BaseEndpoint):
         try:
             recipient = get_user_by_login(session, login=request_model.recipient)
         except DBUserNotExists as e:
-            raise SanicUserNotFound(f"Recipient {request_model.recipient} not found") from e
+            raise SanicUserNotFound(
+                f"Recipient {request_model.recipient} not found"
+            ) from e
 
         db_message = create_message(
             session,
             message=request_model.message,
             recipient_id=recipient.id,
-            sender_id=body["sub"],
+            sender_id=token["sub"],
         )
         try:
             session.commit_session()
@@ -89,13 +96,14 @@ class MessagesEndpoint(BaseEndpoint):
 
 class MessageByIdEndpoint(BaseEndpoint):
     async def method_get(
-            self,
-            request: Request,
-            body: dict,
-            session: DBSession,
-            message_id: int,
-            *args,
-            **kwargs,
+        self,
+        request: Request,
+        body: dict,
+        session: DBSession,
+        message_id: int,
+        token: dict,
+        *args,
+        **kwargs,
     ) -> BaseHTTPResponse:
         """
         Get message by id
@@ -103,6 +111,7 @@ class MessageByIdEndpoint(BaseEndpoint):
         :param body:
         :param session:
         :param message_id:
+        :param token:
         :param args:
         :param kwargs:
         :return:
@@ -112,21 +121,22 @@ class MessageByIdEndpoint(BaseEndpoint):
         except DBMessageNotExists as e:
             raise NotFound(f"Message {message_id} not found") from e
 
-        if body["sub"] not in (db_message.sender_id, db_message.recipient_id):
-            raise Unauthorized("user is not recipient or sender")
+        if token["sub"] not in (db_message.sender_id, db_message.recipient_id):
+            raise Forbidden("user is not recipient or sender")
 
         response_model = ResponseMessageDto(db_message)
 
         return await self.make_response_json(status=200, body=response_model.dump())
 
     async def method_patch(
-            self,
-            request: Request,
-            body: dict,
-            session: DBSession,
-            message_id: int,
-            *args,
-            **kwargs,
+        self,
+        request: Request,
+        body: dict,
+        session: DBSession,
+        message_id: int,
+        token: dict,
+        *args,
+        **kwargs,
     ) -> BaseHTTPResponse:
         """
         Update message by id
@@ -134,6 +144,7 @@ class MessageByIdEndpoint(BaseEndpoint):
         :param body:
         :param session:
         :param message_id:
+        :param token:
         :param args:
         :param kwargs:
         :return:
@@ -147,8 +158,8 @@ class MessageByIdEndpoint(BaseEndpoint):
         except DBMessageNotExists as e:
             raise NotFound(f"Message {message_id} not found") from e
 
-        if body["sub"] != db_message.sender_id:
-            raise Unauthorized("user is not sender")
+        if token["sub"] != db_message.sender_id:
+            raise Forbidden("user is not sender")
 
         try:
             session.commit_session()
@@ -160,13 +171,14 @@ class MessageByIdEndpoint(BaseEndpoint):
         return await self.make_response_json(status=200, body=response_model.dump())
 
     async def method_delete(
-            self,
-            request: Request,
-            body: dict,
-            session: DBSession,
-            message_id: int,
-            *args,
-            **kwargs,
+        self,
+        request: Request,
+        body: dict,
+        session: DBSession,
+        message_id: int,
+        token: dict,
+        *args,
+        **kwargs,
     ) -> BaseHTTPResponse:
         """
         Delete message by id
@@ -174,6 +186,7 @@ class MessageByIdEndpoint(BaseEndpoint):
         :param body:
         :param session:
         :param message_id:
+        :param token:
         :param args:
         :param kwargs:
         :return:
@@ -183,8 +196,8 @@ class MessageByIdEndpoint(BaseEndpoint):
         except DBMessageNotExists as e:
             raise NotFound(f"Message {message_id} not found") from e
 
-        if body["sub"] not in (db_message.sender_id, db_message.recipient_id):
-            raise Unauthorized("user is not recipient or sender")
+        if token["sub"] not in (db_message.sender_id, db_message.recipient_id):
+            raise Forbidden("user is not recipient or sender")
 
         try:
             session.commit_session()

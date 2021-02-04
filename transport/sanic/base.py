@@ -11,18 +11,29 @@ from transport.sanic.exceptions import SanicAuthException
 
 
 class SanicEndpoint:
-    async def __call__(self, *args, **kwargs) -> BaseHTTPResponse:
-        return await self.handler(*args, **kwargs)
+    async def __call__(self, request: Request, *args, **kwargs) -> BaseHTTPResponse:
+
+        if self.auth_required:
+            try:
+                token = {
+                    "token": self.import_body_auth(request),
+                }
+            except SanicAuthException as e:
+                return await self.make_response_json(status=e.status_code)
+            else:
+                kwargs.update(token)
+
+        return await self.handler(request, *args, **kwargs)
 
     def __init__(
-            self,
-            config: ApplicationConfig,
-            context: Context,
-            uri: str,
-            methods: Iterable,
-            auth_required: bool = False,
-            *args,
-            **kwargs,
+        self,
+        config: ApplicationConfig,
+        context: Context,
+        uri: str,
+        methods: Iterable,
+        auth_required: bool = False,
+        *args,
+        **kwargs,
     ):
         self.config = config
         self.uri = uri
@@ -33,10 +44,10 @@ class SanicEndpoint:
 
     @staticmethod
     async def make_response_json(
-            body: dict = None,
-            status: int = 200,
-            message: str = None,
-            error_code: int = None,
+        body: dict = None,
+        status: int = 200,
+        message: str = None,
+        error_code: int = None,
     ) -> BaseHTTPResponse:
 
         if body is None:
@@ -72,19 +83,13 @@ class SanicEndpoint:
     async def handler(self, request: Request, *args, **kwargs) -> BaseHTTPResponse:
         body = {}
 
-        if self.auth_required:
-            try:
-                body.update(self.import_body_auth(request))
-            except SanicAuthException as e:
-                return await self.make_response_json(status=e.status_code)
-
         body.update(self.import_body_json(request))
         body.update(self.import_body_headers(request))
 
         return await self._method(request, body, *args, **kwargs)
 
     async def _method(
-            self, request: Request, body: dict, *args, **kwargs
+        self, request: Request, body: dict, *args, **kwargs
     ) -> BaseHTTPResponse:
         method = request.method.lower()
         func_name = f"method_{method}"
@@ -100,21 +105,21 @@ class SanicEndpoint:
         )
 
     async def method_get(
-            self, request: Request, body: dict, *args, **kwargs
+        self, request: Request, body: dict, *args, **kwargs
     ) -> BaseHTTPResponse:
         return await self.method_not_impl(method="GET")
 
     async def method_post(
-            self, request: Request, body: dict, *args, **kwargs
+        self, request: Request, body: dict, *args, **kwargs
     ) -> BaseHTTPResponse:
         return await self.method_not_impl(method="POST")
 
     async def method_patch(
-            self, request: Request, body: dict, *args, **kwargs
+        self, request: Request, body: dict, *args, **kwargs
     ) -> BaseHTTPResponse:
         return await self.method_not_impl(method="PATCH")
 
     async def method_delete(
-            self, request: Request, body: dict, *args, **kwargs
+        self, request: Request, body: dict, *args, **kwargs
     ) -> BaseHTTPResponse:
         return await self.method_not_impl(method="DELETE")

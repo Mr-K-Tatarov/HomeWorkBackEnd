@@ -13,7 +13,7 @@ from transport.sanic.exceptions import SanicUserNotFound, SanicPasswordHashExcep
 
 class AuthEndpoint(BaseEndpoint):
     async def method_post(
-            self, request: Request, body: dict, session, *args, **kwargs
+        self, request: Request, body: dict, session, *args, **kwargs
     ) -> BaseHTTPResponse:
 
         request_model = RequestAuthUserDto(body)

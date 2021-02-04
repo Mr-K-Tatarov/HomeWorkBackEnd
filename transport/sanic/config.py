@@ -6,7 +6,7 @@ load_dotenv()
 
 
 class SanicConfig:
-    host = os.getenv("host", "localhost")
-    port = int(os.getenv("port", 8000))
-    workers = int(os.getenv("workers", 1))
-    debug = bool(os.getenv("debug", False))
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("POST", 8000))
+    workers = int(os.getenv("WORKERS", 1))
+    debug = bool(os.getenv("DEBUG", False))

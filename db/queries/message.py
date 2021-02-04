@@ -7,7 +7,7 @@ from db.models import DBMessage
 
 
 def create_message(
-        session: DBSession, *, message: str, sender_id: str, recipient_id: str
+    session: DBSession, *, message: str, sender_id: str, recipient_id: str
 ) -> DBMessage:
     new_message = DBMessage(
         message=message,
@@ -28,17 +28,18 @@ def get_message_by_id(session: DBSession, *, message_id: int) -> DBMessage:
 
 
 def get_messages_by_recipient_id(
-        session: DBSession, *, recipient_id: int
+    session: DBSession, *, recipient_id: int
 ) -> List[DBMessage]:
     db_messages = (
-            session.query(DBMessage).filter(DBMessage.recipient_id == recipient_id).all() or []
+        session.query(DBMessage).filter(DBMessage.recipient_id == recipient_id).all()
+        or []
     )
 
     return db_messages
 
 
 def update_message(
-        session: DBSession, *, message: RequestUpdateMessageDto, message_id: int
+    session: DBSession, *, message: RequestUpdateMessageDto, message_id: int
 ) -> DBMessage:
     db_message = get_message_by_id(session, message_id=message_id)
 

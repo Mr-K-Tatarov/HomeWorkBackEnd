@@ -45,8 +45,8 @@ class ResponseDto:
             prop: value
             for prop in dir(obj)
             if not prop.startswith("_")
-               and not prop.endswith("_")
-               and not callable(value := getattr(obj, prop))
+            and not prop.endswith("_")
+            and not callable(value := getattr(obj, prop))
         }
 
     def dump(self) -> dict:

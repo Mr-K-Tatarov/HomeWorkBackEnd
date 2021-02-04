@@ -17,7 +17,7 @@ from transport.sanic.exceptions import (
 
 class CreateUserEndpoint(BaseEndpoint):
     async def method_post(
-            self, request: Request, body: dict, session, *args, **kwargs
+        self, request: Request, body: dict, session, *args, **kwargs
     ) -> BaseHTTPResponse:
 
         request_model = RequestCreateUserDto(body)

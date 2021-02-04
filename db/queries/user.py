@@ -5,7 +5,7 @@ from db.models import DBUser
 
 
 def create_user(
-        session: DBSession, *, user: RequestCreateUserDto, hashed_password: bytes
+    session: DBSession, *, user: RequestCreateUserDto, hashed_password: bytes
 ) -> DBUser:
     new_user = DBUser(
         login=user.login,

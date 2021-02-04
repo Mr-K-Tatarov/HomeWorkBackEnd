@@ -1,4 +1,4 @@
-from sanic.exceptions import Unauthorized
+from sanic.exceptions import Forbidden
 from sanic.request import Request
 from sanic.response import BaseHTTPResponse
 
@@ -13,16 +13,17 @@ from transport.sanic.exceptions import SanicUserNotFound, SanicDBException
 
 class UserEndpoint(BaseEndpoint):
     async def method_patch(
-            self,
-            request: Request,
-            body: dict,
-            session: DBSession,
-            user_id: int,
-            *args,
-            **kwargs
+        self,
+        request: Request,
+        body: dict,
+        session: DBSession,
+        user_id: int,
+        token: dict,
+        *args,
+        **kwargs
     ) -> BaseHTTPResponse:
-        if user_id != body["sub"]:
-            raise Unauthorized("user can update only himself")
+        if user_id != token["sub"]:
+            raise Forbidden("user can update only himself")
 
         request_model = RequestPatchUserDto(body)
 
@@ -41,16 +42,17 @@ class UserEndpoint(BaseEndpoint):
         return await self.make_response_json(status=200, body=response_model.dump())
 
     async def method_delete(
-            self,
-            request: Request,
-            body: dict,
-            session: DBSession,
-            user_id: int,
-            *args,
-            **kwargs
+        self,
+        request: Request,
+        body: dict,
+        session: DBSession,
+        user_id: int,
+        token: dict,
+        *args,
+        **kwargs
     ) -> BaseHTTPResponse:
-        if user_id != body["sub"]:
-            raise Unauthorized("user can delete only himself")
+        if user_id != token["sub"]:
+            raise Forbidden("user can delete only himself")
 
         try:
             _ = delete_user(session, user_id)
@@ -65,16 +67,17 @@ class UserEndpoint(BaseEndpoint):
         return await self.make_response_json(status=204)
 
     async def method_get(
-            self,
-            request: Request,
-            body: dict,
-            session: DBSession,
-            user_id: int,
-            *args,
-            **kwargs
+        self,
+        request: Request,
+        body: dict,
+        session: DBSession,
+        user_id: int,
+        token: dict,
+        *args,
+        **kwargs
     ) -> BaseHTTPResponse:
-        if user_id != body["sub"]:
-            raise Unauthorized("user can get only himself")
+        if user_id != token["sub"]:
+            raise Forbidden("user can get only himself")
 
         try:
             db_user = get_user_by_id(session, user_id=user_id)
